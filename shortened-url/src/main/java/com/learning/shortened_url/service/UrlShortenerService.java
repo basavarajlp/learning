@@ -6,6 +6,7 @@ import com.learning.shortened_url.model.UrlShortener;
 import com.learning.shortened_url.repository.UrlShortenerRepo;
 import com.learning.shortened_url.utils.EncodeUtility;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -25,7 +26,12 @@ public class UrlShortenerService {
         if(Objects.isNull(urlShortener)){
             urlShortener = new UrlShortener();
             urlShortener.setLongUrl(dto.getUrl());
-            repo.save(urlShortener);
+            // The below try-catch block is used to validate the field again in case of multiple instances concurrent request for the same URL
+            try{
+                repo.save(urlShortener);
+            }catch(DataIntegrityViolationException exception){
+                urlShortener = repo.findByLongUrl(dto.getUrl()).orElseThrow();
+            }
         }
         return EncodeUtility.encode(urlShortener.getId());
     }
